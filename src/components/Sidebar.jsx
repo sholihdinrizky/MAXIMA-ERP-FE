@@ -1,119 +1,175 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-    LayoutGrid,
-    Users,
-    Package,
-    ShoppingBag,
-    FileText,
-    LogOut,
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingCart,
+  FileBarChart,
+  LogOut,
+  X,
+  User,
+  Mail,
+  ShieldCheck,
 } from "lucide-react";
 
-export default function Sidebar({
-    activeMenu = "dashboard",
-    setActiveMenu,
-    onLogout,
-}) {
-    const menuItems = [
-        { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
-        { id: "customer", label: "Customer", icon: Users },
-        { id: "product", label: "Product", icon: Package },
-        { id: "sales-order", label: "Sales Order", icon: ShoppingBag },
-        { id: "reports", label: "Reports", icon: FileText },
-    ];
+export default function Sidebar({ activeMenu, setActiveMenu }) {
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-    return (
-        <aside className="w-64 h-screen sticky top-0 flex flex-col justify-between bg-[#1a1b26] p-6 shrink-0 overflow-hidden">
-            {/* BAGIAN ATAS: Logo + Menu */}
-            <div className="flex flex-col gap-8">
-                {/* Header Logo */}
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
-                        <div className="w-4 h-4 border-2 border-teal-400 rotate-45" />
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-white text-base tracking-wide leading-none">
-                            MAXIMA
-                        </h1>
-                        <span className="text-[10px] font-semibold text-teal-400 tracking-wider">
-                            ERP
-                        </span>
-                    </div>
+  const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "customer", label: "Customer", icon: Users },
+    { id: "product", label: "Product", icon: Package },
+    { id: "sales", label: "Sales Order", icon: ShoppingCart },
+    { id: "reports", label: "Reports", icon: FileBarChart },
+  ];
+
+  const handleLogout = (e) => {
+    e.stopPropagation(); // Mencegah trigger click ke card profil
+    if (window.confirm("Apakah Anda yakin ingin keluar dari MAXIMA ERP?")) {
+      // Logika logout (misal reset session / reload ke login)
+      window.location.reload();
+    }
+  };
+
+  return (
+    <>
+      <aside className="w-64 bg-[#1E222B] text-slate-300 flex flex-col justify-between h-screen p-4 border-r border-slate-800/50 select-none">
+        {/* Brand Logo Header */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 px-2 pt-2">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#08D9D6] to-[#06b6b3] flex items-center justify-center text-[#252A34] font-black text-lg shadow-md shadow-[#08D9D6]/10">
+              ◇
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-white tracking-wider leading-none">
+                MAXIMA
+              </h1>
+              <span className="text-[10px] font-bold text-[#08D9D6] tracking-widest uppercase">
+                ERP
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <div className="space-y-1">
+            <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              MAIN MENU
+            </span>
+            <nav className="mt-2 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeMenu === item.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveMenu(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? "bg-slate-800/80 text-white border border-slate-700/60 shadow-sm"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                    }`}
+                  >
+                    <Icon
+                      size={16}
+                      className={isActive ? "text-[#08D9D6]" : "text-slate-400"}
+                    />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
+        {/* Profile Card Bottom Section */}
+        <div
+          onClick={() => setIsProfileModalOpen(true)}
+          className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 rounded-2xl p-3 flex items-center justify-between transition-all duration-150 cursor-pointer group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#08D9D6]/10 border border-[#08D9D6]/20 flex items-center justify-center text-[#08D9D6] font-bold text-xs">
+              R
+            </div>
+            <div className="text-left">
+              <h4 className="text-xs font-bold text-white group-hover:text-[#08D9D6] transition-colors">
+                Rizky
+              </h4>
+              <p className="text-[10px] text-slate-400 font-medium">
+                ITS - Online
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="p-1.5 text-slate-400 hover:text-[#FF2E63] hover:bg-[#FF2E63]/10 rounded-lg transition-all cursor-pointer"
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
+      </aside>
+
+      {/* Profile Detail Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsProfileModalOpen(false)}
+          />
+
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5 z-10 border border-slate-100 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#252A34] text-[#08D9D6] font-bold text-lg flex items-center justify-center shadow-md">
+                  R
                 </div>
-
-                {/* Menu Navigasi */}
-                <nav className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-2">
-                        Main Menu
-                    </span>
-
-                    {/* Item Menu */}
-                    {[
-                        {
-                            id: "dashboard",
-                            label: "Dashboard",
-                            icon: "LayoutDashboard",
-                        },
-                        { id: "customer", label: "Customer", icon: "Users" },
-                        { id: "product", label: "Product", icon: "Package" },
-                        {
-                            id: "sales",
-                            label: "Sales Order",
-                            icon: "ShoppingBag",
-                        },
-                        { id: "reports", label: "Reports", icon: "FileText" },
-                    ].map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveMenu(item.id)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                                activeMenu === item.id
-                                    ? "bg-slate-800 text-teal-400 shadow-sm"
-                                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                            }`}
-                        >
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
+                <div>
+                  <h3 className="text-base font-bold text-[#252A34]">
+                    Muhammad Sholihuddin Rizky
+                  </h3>
+                  <span className="inline-block px-2 py-0.5 rounded-md bg-[#08D9D6]/10 text-[#06b6b3] text-[10px] font-bold">
+                    System Administrator
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            {/* BAGIAN BAWAH: Profil User (Nempel di Dasar) */}
-            <div className="pt-4 border-t border-slate-800/60">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 border border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 font-bold flex items-center justify-center text-xs">
-                            R
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold text-white leading-tight">
-                                Rizky
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                                ITS - Online
-                            </span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onLogout}
-                        className="text-slate-400 hover:text-rose-400 transition-colors p-1"
-                        title="Logout"
-                    >
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                            />
-                        </svg>
-                    </button>
-                </div>
+            <div className="space-y-2.5 text-xs text-slate-600 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <User size={14} className="text-[#06b6b3]" />
+                <span>Batch 2024 — Informatics ITS</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Mail size={14} className="text-[#06b6b3]" />
+                <span>sholihdinrizky@its.ac.id</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck size={14} className="text-[#06b6b3]" />
+                <span>Full Access (Root Admin)</span>
+              </div>
             </div>
-        </aside>
-    );
+
+            <button
+              onClick={() => {
+                setIsProfileModalOpen(false);
+                handleLogout({ stopPropagation: () => {} });
+              }}
+              className="w-full py-2.5 bg-[#FF2E63] hover:bg-[#e02653] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+            >
+              <LogOut size={14} />
+              Log Out Account
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
