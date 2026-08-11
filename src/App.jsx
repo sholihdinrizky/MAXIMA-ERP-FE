@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import StatCard from "./components/StatCard";
 import RevenueChart from "./components/RevenueChart";
@@ -20,9 +21,25 @@ import {
 } from "lucide-react";
 
 export default function App() {
+  // Check session status di localStorage
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("maxima_auth") === "true";
+  });
+
   const [activeMenu, setActiveMenu] = useState("dashboard");
 
-  // Ambil data dan fungsi update dari Pusat Data Utama
+  // Handler Login & Logout
+  const handleLogin = () => {
+    localStorage.setItem("maxima_auth", "true");
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("maxima_auth");
+    setIsLoggedIn(false);
+  };
+
+  // Data Hooks
   const {
     orders,
     totalRevenue,
@@ -38,9 +55,19 @@ export default function App() {
   const { products } = useProducts();
   const { reports } = useReports();
 
+  // Jika belum login, tampilkan Halaman Login
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  // Jika sudah login, tampilkan Main Workspace
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
-      <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
+      <Sidebar
+        activeMenu={activeMenu}
+        setActiveMenu={setActiveMenu}
+        onLogout={handleLogout}
+      />
 
       <main
         className={`flex-1 p-6 flex flex-col ${
@@ -104,7 +131,6 @@ export default function App() {
           </>
         )}
 
-        {/* Kirim data, handler addOrder, DAN updateOrderStatus ke SalesOrder */}
         {activeMenu === "sales" && (
           <SalesOrder
             orders={orders}

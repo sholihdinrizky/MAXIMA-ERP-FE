@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export default function Sidebar({ activeMenu, setActiveMenu }) {
+export default function Sidebar({ activeMenu, setActiveMenu, onLogout }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const navItems = [
@@ -24,10 +24,9 @@ export default function Sidebar({ activeMenu, setActiveMenu }) {
   ];
 
   const handleLogout = (e) => {
-    e.stopPropagation(); // Mencegah trigger click ke card profil
+    e.stopPropagation();
     if (window.confirm("Apakah Anda yakin ingin keluar dari MAXIMA ERP?")) {
-      // Logika logout (misal reset session / reload ke login)
-      window.location.reload();
+      if (onLogout) onLogout();
     }
   };
 
