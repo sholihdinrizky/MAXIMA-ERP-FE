@@ -3,27 +3,39 @@ import Card from "../ui/Card";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 import { ArrowRight } from "lucide-react";
 
-export default function OrderTable({ orders }) {
+export default function OrderTable({ orders = [], onUpdateStatus }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const formatRupiah = (number) => {
+    const validNum = Number(number) || 0;
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       maximumFractionDigits: 0,
-    }).format(number);
+    }).format(validNum);
   };
 
   const getStatusStyle = (status) => {
     switch (status) {
       case "Needs DO":
+      case "Confirmed":
         return "bg-amber-50 text-amber-700 border-amber-200";
       case "Needs Invoice":
+      case "Delivered":
         return "bg-[#FF2E63]/10 text-[#FF2E63] border-[#FF2E63]/20";
       case "Closed":
         return "bg-emerald-50 text-emerald-700 border-emerald-200";
       default:
         return "bg-[#08D9D6]/10 text-[#06b6b3] border-[#08D9D6]/30";
+    }
+  };
+
+  const handleDrawerUpdateStatus = async (id, nextStatus) => {
+    if (onUpdateStatus) {
+      await onUpdateStatus(id, nextStatus);
+    }
+    if (selectedOrder) {
+      setSelectedOrder((prev) => (prev ? { ...prev, status: nextStatus } : null));
     }
   };
 
@@ -50,26 +62,31 @@ export default function OrderTable({ orders }) {
                   className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                 >
                   <td className="py-3.5 font-semibold text-[#06b6b3]">
-                    {item.id}
+                    {item.nomor_so || item.id}
                   </td>
                   <td className="py-3.5 font-medium text-slate-900">
-                    {item.customer}
+                    {typeof item.customer === "string"
+                      ? item.customer
+                      : item.customer?.nama || "-"}
                   </td>
-                  <td className="py-3.5 text-slate-400">{item.date}</td>
+                  <td className="py-3.5 text-slate-400">{item.date || "-"}</td>
                   <td className="py-3.5 font-bold text-slate-900">
-                    {formatRupiah(item.amount)}
+                    {formatRupiah(item.amount ?? item.total_harga)}
                   </td>
                   <td className="py-3.5">
                     <span
                       className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(
-                        item.status,
+                        item.status
                       )}`}
                     >
                       {item.status}
                     </span>
                   </td>
                   <td className="py-3.5 text-right">
-                    <button className="inline-flex items-center gap-1 text-[11px] font-bold text-[#06b6b3] hover:text-[#08D9D6] transition-colors">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#06b6b3] hover:text-[#08D9D6] transition-colors"
+                    >
                       View
                       <ArrowRight
                         size={13}
@@ -82,7 +99,7 @@ export default function OrderTable({ orders }) {
             ) : (
               <tr>
                 <td colSpan="6" className="py-6 text-center text-slate-400">
-                  Data transaksi tidak ditemukan.
+                  Data transaksi tidak ditemukan di PostgreSQL.
                 </td>
               </tr>
             )}
@@ -94,11 +111,7 @@ export default function OrderTable({ orders }) {
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
         order={selectedOrder}
-        onUpdateStatus={(id, nextStatus) => {
-          // Update status lokal
-          selectedOrder.status = nextStatus;
-          setSelectedOrder({ ...selectedOrder });
-        }}
+        onUpdateStatus={handleDrawerUpdateStatus}
       />
     </Card>
   );

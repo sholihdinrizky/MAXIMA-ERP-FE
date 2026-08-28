@@ -9,7 +9,9 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("id-ID", {
 
 const STATUS_STYLES = {
   "Needs DO": "bg-amber-50 text-amber-700 border-amber-200/80",
+  "Confirmed": "bg-amber-50 text-amber-700 border-amber-200/80",
   "Needs Invoice": "bg-[#FF2E63]/10 text-[#FF2E63] border-[#FF2E63]/20",
+  "Delivered": "bg-[#FF2E63]/10 text-[#FF2E63] border-[#FF2E63]/20",
   Closed: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
   "SO Active": "bg-[#08D9D6]/10 text-[#06b6b3] border-[#08D9D6]/30",
 };
@@ -30,37 +32,42 @@ export default function OrderDetailDrawer({
   const getActionButton = (status) => {
     switch (status) {
       case "Needs DO":
+      case "Confirmed":
         return {
           label: "Process Delivery Order",
           nextStatus: "Needs Invoice",
-          style:
-            "bg-amber-500 hover:bg-amber-600 text-white shadow-sm active:scale-95",
+          style: "bg-amber-500 hover:bg-amber-600 text-white shadow-sm active:scale-95",
         };
       case "Needs Invoice":
+      case "Delivered":
         return {
           label: "Generate Invoice",
           nextStatus: "Closed",
-          style:
-            "bg-[#FF2E63] hover:bg-[#e02653] text-white shadow-sm active:scale-95",
+          style: "bg-[#FF2E63] hover:bg-[#e02653] text-white shadow-sm active:scale-95",
         };
       case "Closed":
         return {
           label: "Order Closed (Verified)",
           nextStatus: null,
-          style:
-            "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed",
+          style: "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed",
         };
       default:
         return {
           label: "Process Order",
           nextStatus: "Needs DO",
-          style:
-            "bg-[#08D9D6] hover:bg-[#06b6b3] text-[#252A34] shadow-sm active:scale-95",
+          style: "bg-[#08D9D6] hover:bg-[#06b6b3] text-[#252A34] shadow-sm active:scale-95",
         };
     }
   };
 
   const actionBtn = getActionButton(order.status);
+  
+  // Baca Data PostgreSQL
+  const items = order.items || [];
+  const customerName = typeof order.customer === "string" ? order.customer : order.customer?.nama || "Customer";
+  const customerPhone = order.customer?.telepon || "-";
+  const customerAddress = order.customer?.alamat || "-";
+  const totalAmount = Number(order.amount ?? order.total_harga ?? order.total ?? 0);
 
   // Dynamic Print Handler
   const handleExportPDF = () => {
@@ -71,7 +78,7 @@ export default function OrderDetailDrawer({
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Invoice - ${order.id}</title>
+              <title>Invoice - ${order.nomor_so || order.id}</title>
               <style>
                 body { font-family: sans-serif; padding: 40px; color: #252A34; }
                 .header { border-bottom: 2px solid #08D9D6; padding-bottom: 10px; margin-bottom: 20px; }
@@ -81,10 +88,10 @@ export default function OrderDetailDrawer({
             <body>
               <div class="header">
                 <h2>MAXIMA ERP — INVOICE</h2>
-                <p>Order ID: ${order.id} | Date: ${order.date}</p>
+                <p>Order ID: ${order.nomor_so || order.id} | Date: ${order.date || "-"}</p>
               </div>
-              <p><strong>Customer:</strong> ${order.customerName || order.customer}</p>
-              <p class="total">Total Amount: ${CURRENCY_FORMATTER.format(order.amount || 450000000)}</p>
+              <p><strong>Customer:</strong> ${customerName}</p>
+              <p class="total">Total Amount: ${CURRENCY_FORMATTER.format(totalAmount)}</p>
               <script>window.onload = function() { window.print(); window.close(); };</script>
             </body>
           </html>
@@ -114,9 +121,9 @@ export default function OrderDetailDrawer({
                 Sales Order Detail
               </span>
               <h2 className="text-xl font-bold text-[#252A34] tracking-tight mt-0.5">
-                {order.id}
+                {order.nomor_so || order.id}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">{order.date}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{order.date || "-"}</p>
             </div>
             <div className="flex items-center gap-3">
               <span
@@ -140,24 +147,20 @@ export default function OrderDetailDrawer({
                 Customer
               </span>
               <h3 className="text-sm font-bold text-[#252A34]">
-                {order.customerName || order.customer}
+                {customerName}
               </h3>
               <div className="space-y-1.5 text-xs text-slate-500">
                 <div className="flex items-center gap-2">
                   <Building2 size={14} className="text-[#06b6b3]" />
-                  <span>
-                    {order.institution || "Institut Teknologi Sepuluh Nopember"}
-                  </span>
+                  <span>{order.customer?.nama || customerName}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone size={14} className="text-[#06b6b3]" />
-                  <span>{order.phone || "031-5994251"}</span>
+                  <span>{customerPhone}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin size={14} className="text-[#06b6b3]" />
-                  <span>
-                    {order.address || "Jl. Raya ITS, Sukolilo, Surabaya"}
-                  </span>
+                  <span className="truncate">{customerAddress}</span>
                 </div>
               </div>
             </div>
@@ -175,36 +178,36 @@ export default function OrderDetailDrawer({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {(order.items && order.items.length > 0
-                      ? order.items
-                      : [
-                          {
-                            name: "Laptop ASUS Vivobook 14 i5",
-                            qty: 40,
-                            price: 9850000,
-                          },
-                          {
-                            name: "Logitech Wireless Mouse M331",
-                            qty: 40,
-                            price: 285000,
-                          },
-                        ]
-                    ).map((item, idx) => (
-                      <tr key={idx}>
-                        <td className="py-3 font-semibold text-[#252A34] max-w-[140px]">
-                          {item.name}
-                        </td>
-                        <td className="py-3 text-center font-medium text-slate-500">
-                          {item.qty}
-                        </td>
-                        <td className="py-3 text-right text-slate-500">
-                          {CURRENCY_FORMATTER.format(item.price)}
-                        </td>
-                        <td className="py-3 text-right font-bold text-[#252A34]">
-                          {CURRENCY_FORMATTER.format(item.qty * item.price)}
+                    {items.length > 0 ? (
+                      items.map((item, idx) => {
+                        const prodName = item.product?.nama_produk || item.nama_produk || "Item";
+                        const qty = item.jumlah || item.qty || 1;
+                        const price = Number(item.harga_satuan ?? item.price ?? 0);
+                        const sub = Number(item.subtotal ?? (qty * price));
+                        return (
+                          <tr key={idx}>
+                            <td className="py-3 font-semibold text-[#252A34] max-w-[140px]">
+                              {prodName}
+                            </td>
+                            <td className="py-3 text-center font-medium text-slate-500">
+                              {qty}
+                            </td>
+                            <td className="py-3 text-right text-slate-500">
+                              {CURRENCY_FORMATTER.format(price)}
+                            </td>
+                            <td className="py-3 text-right font-bold text-[#252A34]">
+                              {CURRENCY_FORMATTER.format(sub)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="py-4 text-center text-slate-400">
+                          Data rincian produk tidak tersedia.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -216,7 +219,7 @@ export default function OrderDetailDrawer({
                 Total Amount
               </span>
               <span className="text-lg font-bold text-[#08D9D6]">
-                {CURRENCY_FORMATTER.format(order.amount || 450000000)}
+                {CURRENCY_FORMATTER.format(totalAmount)}
               </span>
             </div>
 
@@ -224,10 +227,10 @@ export default function OrderDetailDrawer({
             <div className="grid grid-cols-4 gap-1.5 pt-2">
               <div className="h-1.5 rounded-full bg-[#08D9D6]" />
               <div
-                className={`h-1.5 rounded-full ${order.status !== "SO Active" ? "bg-[#08D9D6]" : "bg-slate-200"}`}
+                className={`h-1.5 rounded-full ${order.status !== "SO Active" && order.status !== "Draft" ? "bg-[#08D9D6]" : "bg-slate-200"}`}
               />
               <div
-                className={`h-1.5 rounded-full ${order.status === "Closed" || order.status === "Needs Invoice" ? "bg-[#08D9D6]" : "bg-slate-200"}`}
+                className={`h-1.5 rounded-full ${order.status === "Closed" || order.status === "Needs Invoice" || order.status === "Delivered" ? "bg-[#08D9D6]" : "bg-slate-200"}`}
               />
               <div
                 className={`h-1.5 rounded-full ${order.status === "Closed" ? "bg-[#08D9D6]" : "bg-slate-200"}`}
@@ -249,7 +252,7 @@ export default function OrderDetailDrawer({
               className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-[#252A34] font-bold text-xs px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95"
             >
               <FileDown size={15} />
-              Export PDF Invoice
+              Export PDF
             </button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import OrderSearch from "../components/sales/OrderSearch";
 import OrderTable from "../components/sales/OrderTable";
@@ -12,11 +12,20 @@ export default function SalesOrders({
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const filteredOrders = orders.filter(
-    (item) =>
-      item.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  // Safe filter untuk data dari backend maupun hook
+  const filteredOrders = useMemo(() => {
+    const query = searchTerm.toLowerCase().trim();
+    if (!query) return orders;
+
+    return orders.filter((item) => {
+      const custName = item.customer?.nama || item.customer || "";
+      const orderNo = item.nomor_so || item.id || "";
+      return (
+        custName.toLowerCase().includes(query) ||
+        orderNo.toLowerCase().includes(query)
+      );
+    });
+  }, [orders, searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -30,19 +39,22 @@ export default function SalesOrders({
           </p>
         </div>
         <button
+          type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+          className="flex items-center gap-2 bg-[#08D9D6] hover:bg-[#06b6b3] text-[#252A34] px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95"
         >
           <Plus size={16} />
           Create New Order
         </button>
       </div>
+
       <OrderSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+
       <OrderTable
         orders={filteredOrders}
-        onUpdateStat
-        us={onUpdateStatus}
-      />{" "}
+        onUpdateStatus={onUpdateStatus}
+      />
+
       <OrderModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

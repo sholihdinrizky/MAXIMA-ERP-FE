@@ -1,32 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import api from "../services/api";
 
 export function useReports() {
-    const [reports] = useState([
-        {
-            id: "REP-2026-08",
-            title: "Laporan Penjualan Agustus 2026",
-            type: "Sales",
-            date: "05 Aug 2026",
-            totalAmount: "Rp 1.225.000.000",
-            status: "Ready",
-        },
-        {
-            id: "REP-2026-07",
-            title: "Laporan Penjualan Juli 2026",
-            type: "Sales",
-            date: "31 Jul 2026",
-            totalAmount: "Rp 1.779.500.000",
-            status: "Ready",
-        },
-        {
-            id: "REP-INV-001",
-            title: "Laporan Stok & Inventaris Produk",
-            type: "Inventory",
-            date: "01 Aug 2026",
-            totalAmount: "1.735 Items",
-            status: "Ready",
-        },
-    ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    return { reports };
+  const fetchReportData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/sales-orders");
+      setOrders(res.data?.data || []);
+    } catch (err) {
+      console.error("Gagal load data report:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
+
+  // Agregasi Data Finansial
+  const summary = useMemo(() => {
+    const totalSales = orders.reduce((sum, o) => sum + (parseFloat(o.total_harga) || 0), 0);
+    const completedOrders = orders.filter((o) => o.status === "Closed");
+    const settledRevenue = completedOrders.reduce((sum, o) => sum + (parseFloat(o.total_harga) || 0), 0);
+    const pendingRevenue = totalSales - settledRevenue;
+
+    return {
+      totalSales,
+      settledRevenue,
+      pendingRevenue,
+      totalTransactions: orders.length,
+      completedTransactions: completedOrders.length,
+    };
+  }, [orders]);
+
+  return {
+    orders,
+    summary,
+    loading,
+    refetchReports: fetchReportData,
+  };
 }

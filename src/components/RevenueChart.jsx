@@ -1,84 +1,120 @@
-import React from "react";
+import React, { useMemo } from "react";
 import Card from "./ui/Card";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
-export default function RevenueChart() {
-    const data = [
-        { month: "Jul '23", amount: 520 },
-        { month: "Aug '23", amount: 360 },
-        { month: "Sep '23", amount: 650 },
-        { month: "Oct '23", amount: 350 },
-    ];
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+];
 
-    const maxAmount = 800;
+const CURRENCY = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
 
-    return (
-        <Card className="flex flex-col justify-between h-full">
-            {/* Header Chart */}
-            <div className="mb-4">
-                <h2 className="text-base font-bold text-slate-900 leading-tight">
-                    Monthly Sales Revenue
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                    Revenue booked per month
-                </p>
-            </div>
+export default function RevenueChart({ orders = [] }) {
+  const chartData = useMemo(() => {
+    // Inisialisasi 12 bulan dengan nilai 0
+    const monthlyMap = Array(12).fill(0);
 
-            {/* Area Grafik */}
-            <div className="flex flex-col w-full">
-                {/* 1. Area Batang & Garis Grid (Tinggi Pas 160px) */}
-                <div className="relative h-36 w-full">
-                    {/* Garis Grid Horizontal */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-slate-300">
-                        <div className="border-b border-dashed border-slate-100 pb-0.5">
-                            800Jt
-                        </div>
-                        <div className="border-b border-dashed border-slate-100 pb-0.5">
-                            600Jt
-                        </div>
-                        <div className="border-b border-dashed border-slate-100 pb-0.5">
-                            400Jt
-                        </div>
-                        <div className="border-b border-dashed border-slate-100 pb-0.5">
-                            200Jt
-                        </div>
-                        <div className="border-b border-slate-300 pb-0.5 font-bold text-slate-400">
-                            0Jt
-                        </div>
-                    </div>
+    orders.forEach((order) => {
+      const rawDate = order.tanggal || order.date || order.created_at;
+      let monthIndex = new Date().getMonth(); // Fallback ke bulan berjalan jika parsing gagal
 
-                    {/* Batang Grafik (Nempel Pas di Dasar Garis 0Jt) */}
-                    <div className="absolute inset-0 pl-8 flex items-end justify-around z-10">
-                        {data.map((item) => {
-                            const heightPercent =
-                                (item.amount / maxAmount) * 100;
-                            return (
-                                <div
-                                    key={item.month}
-                                    className="flex items-end justify-center h-full w-12 group"
-                                >
-                                    <div
-                                        style={{ height: `${heightPercent}%` }}
-                                        className="w-10 bg-teal-400/80 rounded-t-lg transition-all duration-300 group-hover:bg-teal-600 cursor-pointer"
-                                        title={`Rp ${item.amount} Juta`}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+      if (rawDate) {
+        // Handle format ISO "2026-08-28..." maupun "28/8/2026"
+        if (typeof rawDate === "string" && rawDate.includes("/")) {
+          const parts = rawDate.split("/");
+          if (parts.length >= 2) {
+            monthIndex = parseInt(parts[1], 10) - 1;
+          }
+        } else {
+          const parsed = new Date(rawDate);
+          if (!isNaN(parsed.getTime())) {
+            monthIndex = parsed.getMonth();
+          }
+        }
+      }
 
-                {/* 2. Area Label Bulan (Di Bawah Garis 0Jt) */}
-                <div className="pl-8 flex justify-around mt-3">
-                    {data.map((item) => (
-                        <span
-                            key={item.month}
-                            className="w-12 text-center text-[11px] font-medium text-slate-400"
-                        >
-                            {item.month}
-                        </span>
-                    ))}
-                </div>
-            </div>
-        </Card>
-    );
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const val = parseFloat(order.amount ?? order.total_harga ?? order.total ?? 0);
+        monthlyMap[monthIndex] += val;
+      }
+    });
+
+    const currentMonth = new Date().getMonth();
+    const result = [];
+
+    // Tampilkan 5 bulan (2 bulan lalu, bulan ini, 2 bulan ke depan)
+    for (let i = Math.max(0, currentMonth - 2); i <= Math.min(11, currentMonth + 2); i++) {
+      const rawVal = monthlyMap[i];
+      result.push({
+        month: MONTH_NAMES[i],
+        revenueJt: Math.round(rawVal / 1000000), // Dalam satuan Juta (contoh: 278)
+        rawRevenue: rawVal,
+      });
+    }
+
+    return result;
+  }, [orders]);
+
+  return (
+    <Card className="p-5 flex flex-col justify-between h-[300px]">
+      <div>
+        <h2 className="text-sm font-bold text-[#252A34]">Monthly Sales Revenue</h2>
+        <p className="text-[10px] text-slate-400">
+          Realisasi omzet bulanan dari transaksi penjualan
+        </p>
+      </div>
+
+      <div className="h-52 w-full pt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis
+              dataKey="month"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#94a3b8", fontSize: 11 }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#94a3b8", fontSize: 11 }}
+              tickFormatter={(val) => `${val}Jt`}
+            />
+            <Tooltip
+              formatter={(value, name, item) => [
+                CURRENCY.format(item.payload.rawRevenue),
+                "Total Revenue",
+              ]}
+              contentStyle={{
+                backgroundColor: "#252A34",
+                borderRadius: "12px",
+                border: "none",
+                color: "#fff",
+                fontSize: "11px",
+              }}
+              itemStyle={{ color: "#08D9D6" }}
+            />
+            <Bar
+              dataKey="revenueJt"
+              fill="#08D9D6"
+              radius={[6, 6, 0, 0]}
+              maxBarSize={40}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
+  );
 }

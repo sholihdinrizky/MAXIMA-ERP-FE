@@ -32,7 +32,7 @@ export default function Sidebar({ activeMenu, setActiveMenu, onLogout }) {
 
   return (
     <>
-      <aside className="w-64 bg-[#1E222B] text-slate-300 flex flex-col justify-between h-screen p-4 border-r border-slate-800/50 select-none">
+      <aside className="w-64 bg-[#1E222B] text-slate-300 flex flex-col justify-between h-screen p-4 border-r border-slate-800/50 select-none shrink-0">
         {/* Brand Logo Header */}
         <div className="space-y-6">
           <div className="flex items-center gap-3 px-2 pt-2">
@@ -62,11 +62,12 @@ export default function Sidebar({ activeMenu, setActiveMenu, onLogout }) {
                 return (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => setActiveMenu(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer outline-none focus:outline-none focus:ring-0 ${
                       isActive
                         ? "bg-slate-800/80 text-white border border-slate-700/60 shadow-sm"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
                     }`}
                   >
                     <Icon
@@ -101,9 +102,10 @@ export default function Sidebar({ activeMenu, setActiveMenu, onLogout }) {
           </div>
 
           <button
+            type="button"
             onClick={handleLogout}
             title="Logout"
-            className="p-1.5 text-slate-400 hover:text-[#FF2E63] hover:bg-[#FF2E63]/10 rounded-lg transition-all cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-[#FF2E63] hover:bg-[#FF2E63]/10 rounded-lg transition-all cursor-pointer outline-none focus:outline-none focus:ring-0"
           >
             <LogOut size={15} />
           </button>
@@ -134,8 +136,9 @@ export default function Sidebar({ activeMenu, setActiveMenu, onLogout }) {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsProfileModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer outline-none"
               >
                 <X size={16} />
               </button>
@@ -157,11 +160,12 @@ export default function Sidebar({ activeMenu, setActiveMenu, onLogout }) {
             </div>
 
             <button
+              type="button"
               onClick={() => {
                 setIsProfileModalOpen(false);
                 handleLogout({ stopPropagation: () => {} });
               }}
-              className="w-full py-2.5 bg-[#FF2E63] hover:bg-[#e02653] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[#FF2E63] hover:bg-[#e02653] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2 outline-none"
             >
               <LogOut size={14} />
               Log Out Account

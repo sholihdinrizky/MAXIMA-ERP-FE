@@ -9,37 +9,27 @@ import SalesOrder from "./pages/SalesOrders";
 import Customers from "./pages/Customers";
 import { useCustomers } from "./hooks/useCustomers";
 import Products from "./pages/Products";
-import { useProducts } from "./hooks/useProducts";
 import Reports from "./pages/Report";
-import { useReports } from "./hooks/useReport";
 import { useSalesOrders } from "./hooks/useSalesOrders";
-import {
-  TrendingUp,
-  ShoppingBag,
-  AlertTriangle,
-  Building2,
-} from "lucide-react";
+import { TrendingUp, ShoppingBag, AlertTriangle, Building2 } from "lucide-react";
 
 export default function App() {
-  // Check session status di localStorage
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem("maxima_auth") === "true";
+    return localStorage.getItem("token") !== null;
   });
 
   const [activeMenu, setActiveMenu] = useState("dashboard");
 
-  // Handler Login & Logout
   const handleLogin = () => {
-    localStorage.setItem("maxima_auth", "true");
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("maxima_auth");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setIsLoggedIn(false);
   };
 
-  // Data Hooks
   const {
     orders,
     totalRevenue,
@@ -49,18 +39,14 @@ export default function App() {
     updateOrderStatus,
   } = useSalesOrders();
 
+  const { customers } = useCustomers();
+
   const formattedRevenue = `Rp ${totalRevenue.toLocaleString("id-ID")}`;
 
-  const { customers } = useCustomers();
-  const { products } = useProducts();
-  const { reports } = useReports();
-
-  // Jika belum login, tampilkan Halaman Login
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;
   }
 
-  // Jika sudah login, tampilkan Main Workspace
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar
@@ -92,7 +78,7 @@ export default function App() {
                 title="Total Revenue"
                 value={formattedRevenue}
                 icon={TrendingUp}
-                trend="+12.4%"
+                trend="+100%"
                 badgeType="teal"
               />
               <StatCard
@@ -102,15 +88,15 @@ export default function App() {
                 badgeType="teal"
               />
               <StatCard
-                title="Needs DO / Invoice"
+                title="Needs Action"
                 value={`${pendingActions} Orders`}
                 icon={AlertTriangle}
-                badgeText="Pending Action"
+                badgeText="Action Required"
                 badgeType="rose"
               />
               <StatCard
                 title="Active Customers"
-                value={`${customers?.length || 8} Companies`}
+                value={`${customers ? customers.length : 0} Companies`}
                 icon={Building2}
                 badgeType="teal"
               />
@@ -118,10 +104,10 @@ export default function App() {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               <div className="xl:col-span-2">
-                <RevenueChart />
+                <RevenueChart orders={orders}/>
               </div>
               <div>
-                <StatusDistributionChart />
+                <StatusDistributionChart orders={orders} />
               </div>
             </div>
 
@@ -131,6 +117,8 @@ export default function App() {
           </>
         )}
 
+        {activeMenu === "customer" && <Customers />}
+        {activeMenu === "product" && <Products />}
         {activeMenu === "sales" && (
           <SalesOrder
             orders={orders}
@@ -138,14 +126,7 @@ export default function App() {
             onUpdateStatus={updateOrderStatus}
           />
         )}
-
-        {activeMenu === "customer" && <Customers customers={customers} />}
-
-        {activeMenu === "product" && <Products products={products} />}
-
-        {(activeMenu === "reports" || activeMenu === "Reports") && (
-          <Reports reports={reports} />
-        )}
+        {activeMenu === "reports" && <Reports />}
       </main>
     </div>
   );
