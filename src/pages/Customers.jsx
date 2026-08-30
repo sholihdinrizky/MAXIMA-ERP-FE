@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Search, X, Building2, Lock } from "lucide-react";
+import {
+  Plus,
+  Search,
+  X,
+  Building2,
+  Lock,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
 import api from "../services/api";
 
 export default function Customers() {
@@ -7,8 +16,14 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     kode: "",
@@ -18,6 +33,7 @@ export default function Customers() {
     alamat: "",
   });
 
+  // Ambil daftar customer dari backend
   const fetchCustomers = async () => {
     try {
       setLoading(true);
@@ -36,8 +52,10 @@ export default function Customers() {
     fetchCustomers();
   }, []);
 
-  // Buka modal & Auto-Generate Kode Customer selanjutnya
-  const handleOpenModal = () => {
+  // Buka modal tambah
+  const handleOpenAddModal = () => {
+    setIsEditMode(false);
+    setSelectedCustomerId(null);
     const nextNum = customers.length + 1;
     const autoKode = `CUST-${String(nextNum).padStart(3, "0")}`;
     setFormData({
@@ -51,27 +69,40 @@ export default function Customers() {
     setIsModalOpen(true);
   };
 
-  // Sanitasi Nama Perusahaan (Hanya huruf, angka, spasi, titik, koma, strip)
+  // Buka modal edit
+  const handleOpenEditModal = (item) => {
+    setIsEditMode(true);
+    setSelectedCustomerId(item.id);
+    setFormData({
+      kode: item.kode,
+      nama: item.nama,
+      email: item.email || "",
+      telepon: item.telepon || "",
+      alamat: item.alamat === "-" ? "" : item.alamat,
+    });
+    setErrorMsg("");
+    setIsModalOpen(true);
+  };
+
   const handleNamaChange = (e) => {
     const val = e.target.value;
     const sanitized = val.replace(/[^a-zA-Z0-9\s.,-]/g, "");
     setFormData({ ...formData, nama: sanitized });
   };
 
-  // Sanitasi Telepon (Hanya Angka)
   const handleTeleponChange = (e) => {
     const val = e.target.value;
     const numericOnly = val.replace(/\D/g, "");
     setFormData({ ...formData, telepon: numericOnly });
   };
 
-  const handleAddCustomer = async (e) => {
+  // Submit form create / edit
+  const handleSubmitCustomer = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
-    // Validasi ketat nama perusahaan (tidak boleh kosong atau cuma simbol strip)
     if (!formData.nama.trim() || formData.nama.trim().replace(/[-.,\s]/g, "").length < 2) {
-      setErrorMsg("Nama perusahaan harus valid (minimal 2 karakter huruf/angka).");
+      setErrorMsg("Nama perusahaan harus valid (minimal 2 karakter).");
       return;
     }
 
@@ -82,22 +113,49 @@ export default function Customers() {
 
     setSubmitting(true);
     try {
-      await api.post("/customers", {
-        ...formData,
+      const payload = {
+        kode: formData.kode,
         nama: formData.nama.trim(),
         email: formData.email.trim(),
         telepon: formData.telepon.trim(),
         alamat: formData.alamat.trim() || "-",
-      });
+      };
+
+      if (isEditMode) {
+        await api.put(`/customers/${selectedCustomerId}`, payload);
+      } else {
+        await api.post("/customers", payload);
+      }
+
       setIsModalOpen(false);
       await fetchCustomers();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Gagal menambahkan pelanggan");
+      setErrorMsg(err.response?.data?.message || "Gagal menyimpan data pelanggan");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Eksekusi hapus customer
+  const handleConfirmDelete = async () => {
+    if (!customerToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/customers/${customerToDelete.id}`);
+      setDeleteModalOpen(false);
+      setCustomerToDelete(null);
+      await fetchCustomers();
+    } catch (err) {
+      const detailPesan =
+        err.response?.data?.message ||
+        "Gagal menghapus pelanggan. Data ini mungkin masih terikat dengan transaksi Sales Order.";
+      alert(detailPesan);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Filter pencarian
   const filteredCustomers = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
     if (!query) return customers;
@@ -112,6 +170,7 @@ export default function Customers() {
 
   return (
     <div className="space-y-6">
+      {/* Header Halaman */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#252A34] tracking-tight">
@@ -123,7 +182,7 @@ export default function Customers() {
         </div>
         <button
           type="button"
-          onClick={handleOpenModal}
+          onClick={handleOpenAddModal}
           className="flex items-center gap-2 bg-[#08D9D6] hover:bg-[#06b6b3] text-[#252A34] px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95"
         >
           <Plus size={16} />
@@ -131,6 +190,7 @@ export default function Customers() {
         </button>
       </div>
 
+      {/* Bar Pencarian */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search
@@ -147,6 +207,7 @@ export default function Customers() {
         </div>
       </div>
 
+      {/* Tabel Data Customer */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
@@ -156,12 +217,13 @@ export default function Customers() {
               <th className="pb-3">EMAIL</th>
               <th className="pb-3">TELEPON</th>
               <th className="pb-3">ALAMAT</th>
+              <th className="pb-3 text-right">AKSI</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700">
             {loading ? (
               <tr>
-                <td colSpan="5" className="py-6 text-center text-slate-400">
+                <td colSpan="6" className="py-6 text-center text-slate-400">
                   Memuat data pelanggan dari PostgreSQL...
                 </td>
               </tr>
@@ -179,12 +241,35 @@ export default function Customers() {
                   <td className="py-3 text-slate-500">{item.email || "-"}</td>
                   <td className="py-3 text-slate-600">{item.telepon || "-"}</td>
                   <td className="py-3 text-slate-500 max-w-xs truncate">{item.alamat || "-"}</td>
+                  <td className="py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(item)}
+                        title="Edit Customer"
+                        className="p-1.5 text-slate-400 hover:text-[#06b6b3] hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomerToDelete(item);
+                          setDeleteModalOpen(true);
+                        }}
+                        title="Hapus Customer"
+                        className="p-1.5 text-slate-400 hover:text-[#FF2E63] hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="py-6 text-center text-slate-400">
-                  Belum ada pelanggan di database PostgreSQL.
+                <td colSpan="6" className="py-6 text-center text-slate-400">
+                  Belum ada data pelanggan di database.
                 </td>
               </tr>
             )}
@@ -192,13 +277,13 @@ export default function Customers() {
         </table>
       </div>
 
-      {/* Modal Add Customer */}
+      {/* Modal Add / Edit Customer */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-100 animate-in zoom-in-95 duration-150">
+        <div className="!fixed !top-0 !left-0 !right-0 !bottom-0 !w-screen !h-screen !m-0 !p-0 z-[999999] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-100">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="text-base font-bold text-[#252A34]">
-                Tambah Pelanggan Baru
+                {isEditMode ? "Edit Data Pelanggan" : "Tambah Pelanggan Baru"}
               </h2>
               <button
                 type="button"
@@ -215,10 +300,10 @@ export default function Customers() {
               </div>
             )}
 
-            <form onSubmit={handleAddCustomer} className="space-y-3">
+            <form onSubmit={handleSubmitCustomer} className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold uppercase text-slate-500 flex items-center justify-between">
-                  <span>Kode Customer (Auto-Generated)</span>
+                  <span>Kode Customer {isEditMode ? "(Terkunci)" : "(Auto-Generated)"}</span>
                   <Lock size={12} className="text-slate-400" />
                 </label>
                 <input
@@ -298,10 +383,65 @@ export default function Customers() {
                   disabled={submitting}
                   className="px-4 py-2 text-xs font-bold text-[#252A34] bg-[#08D9D6] hover:bg-[#06b6b3] rounded-xl shadow-sm cursor-pointer disabled:opacity-50 active:scale-95"
                 >
-                  {submitting ? "Menyimpan..." : "Simpan Customer"}
+                  {submitting
+                    ? "Menyimpan..."
+                    : isEditMode
+                    ? "Simpan Perubahan"
+                    : "Simpan Customer"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Warning Delete */}
+      {deleteModalOpen && (
+        <div className="!fixed !top-0 !left-0 !right-0 !bottom-0 !w-screen !h-screen !m-0 !p-0 z-[999999] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 border border-rose-100">
+            <div className="flex items-center gap-3 text-[#FF2E63]">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center border border-rose-100">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#252A34]">
+                  Hapus Pelanggan Ini?
+                </h3>
+                <p className="text-[10px] text-slate-400">
+                  Tindakan ini tidak dapat dibatalkan
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              Apakah Anda yakin ingin menghapus{" "}
+              <strong className="text-slate-800">
+                {customerToDelete?.nama} ({customerToDelete?.kode})
+              </strong>{" "}
+              dari database?
+            </p>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setCustomerToDelete(null);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#FF2E63] hover:bg-rose-600 rounded-xl shadow-sm cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                {deleting ? "Menghapus..." : "Ya, Hapus Customer"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Login from "./pages/Login";
 import Sidebar from "./components/Sidebar";
 import StatCard from "./components/StatCard";
@@ -19,16 +19,44 @@ export default function App() {
   });
 
   const [activeMenu, setActiveMenu] = useState("dashboard");
+  const idleTimerRef = useRef(null);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback((isAuto = false) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setIsLoggedIn(false);
-  };
+    if (isAuto) {
+      alert("Sesi Anda telah berakhir karena tidak ada aktivitas selama 5 menit demi keamanan.");
+    }
+  }, []);
+
+  // Inactivity Auto-Logout Tracker (5 Menit)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 Menit
+
+    const resetTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        handleLogout(true);
+      }, INACTIVITY_LIMIT);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach((evt) => window.addEventListener(evt, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+    };
+  }, [isLoggedIn, handleLogout]);
 
   const {
     orders,
@@ -48,18 +76,18 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
+    <div className="flex h-screen w-full bg-[#f8fafc] font-sans text-slate-800 overflow-hidden">
       <Sidebar
         activeMenu={activeMenu}
         setActiveMenu={setActiveMenu}
-        onLogout={handleLogout}
+        onLogout={() => handleLogout(false)}
       />
 
       <main
         className={`flex-1 p-6 flex flex-col ${
           activeMenu === "dashboard"
             ? "h-screen overflow-hidden justify-between"
-            : "overflow-y-auto"
+            : "h-screen overflow-y-auto"
         }`}
       >
         {activeMenu === "dashboard" && (
@@ -104,7 +132,7 @@ export default function App() {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               <div className="xl:col-span-2">
-                <RevenueChart orders={orders}/>
+                <RevenueChart orders={orders} />
               </div>
               <div>
                 <StatusDistributionChart orders={orders} />

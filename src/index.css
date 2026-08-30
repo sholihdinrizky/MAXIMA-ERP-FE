@@ -2,93 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-    background-color: #f8fafc;
-    color: #0f172a;
-    font-family: "Plus Jakarta Sans", sans-serif;
-    -webkit-font-smoothing: antialiased;
+/* 1. Kunci layout root agar rapat tanpa margin/celah */
+html,
+body,
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100vh !important;
+  background-color: #f8fafc !important;
+  color: #0f172a;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar Modern */
+/* 2. Class khusus modal agar menutup 100% layar tanpa celah putih */
+.modal-overlay-custom {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+}
+
+/* 3. Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 9999px;
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* ==========================================
-   PERSISTENT PRINT STYLING (Pixel-Perfect PDF)
-   ========================================== */
-@media print {
-    /* 1. Sembunyikan elemen navigasi & tombol dari kertas */
-    aside,
-    button,
-    input,
-    header p {
-        display: none !important;
-    }
-
-    /* 2. Format area utama agar penuh 100% tanpa scrollbar */
-    body,
-    main {
-        background: #ffffff !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
-    /* 3. Hilangkan bayangan box & atur teks agar tajam */
-    .shadow-sm,
-    .shadow-xl,
-    .shadow-md {
-        box-shadow: none !important;
-        border: none !important;
-    }
-
-    /* 4. Pastikan tabel mepet rapi di kertas A4 */
-    table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-    }
-
-    th,
-    td {
-        padding: 8px 4px !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-    }
-}
-
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    aside,
-    header,
-    nav,
-    .print\:hidden {
-        display: none !important;
-    }
-    /* Hanya tampilkan area dokumen modal yang aktif */
-    .fixed,
-    .fixed * {
-        visibility: visible;
-    }
-    .fixed {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        background: white !important;
-    }
+  background: #94a3b8;
 }

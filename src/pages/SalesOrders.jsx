@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Plus } from "lucide-react";
+import api from "../services/api";
 import OrderSearch from "../components/sales/OrderSearch";
 import OrderTable from "../components/sales/OrderTable";
 import OrderModal from "../components/sales/OrderModal";
@@ -11,21 +12,70 @@ export default function SalesOrders({
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [customersList, setCustomersList] = useState([]);
 
-  // Safe filter untuk data dari backend maupun hook
+  // Ambil data customer lengkap dari database untuk melengkapi profil di Drawer
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await api.get("/customers");
+        if (res.data?.data) {
+          setCustomersList(res.data.data);
+        }
+      } catch (err) {
+        console.error("Gagal load customer list:", err);
+      }
+    };
+    fetchCustomers();
+  }, []);
+
+  // Gabungkan info telepon & alamat customer ke dalam data order
+  const enrichedOrders = useMemo(() => {
+    return orders.map((item) => {
+      // Cari customer yang cocok berdasarkan id, customer_id, atau nama
+      const matchedCustomer = customersList.find(
+        (c) =>
+          c.id === item.customer_id ||
+          c.id === item.customer?.id ||
+          c.nama?.toLowerCase() === (item.customer?.nama || item.customer || "").toLowerCase()
+      );
+
+      const customerObj = {
+        nama:
+          matchedCustomer?.nama ||
+          item.customer?.nama ||
+          (typeof item.customer === "string" ? item.customer : "Customer"),
+        telepon:
+          matchedCustomer?.telepon ||
+          item.customer?.telepon ||
+          "-",
+        alamat:
+          matchedCustomer?.alamat ||
+          item.customer?.alamat ||
+          "-",
+      };
+
+      return {
+        ...item,
+        customer: customerObj,
+      };
+    });
+  }, [orders, customersList]);
+
+  // Safe filter untuk search bar
   const filteredOrders = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
-    if (!query) return orders;
+    if (!query) return enrichedOrders;
 
-    return orders.filter((item) => {
-      const custName = item.customer?.nama || item.customer || "";
+    return enrichedOrders.filter((item) => {
+      const custName = item.customer?.nama || "";
       const orderNo = item.nomor_so || item.id || "";
       return (
         custName.toLowerCase().includes(query) ||
         orderNo.toLowerCase().includes(query)
       );
     });
-  }, [orders, searchTerm]);
+  }, [enrichedOrders, searchTerm]);
 
   return (
     <div className="space-y-6">

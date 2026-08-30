@@ -25,6 +25,8 @@ export default function OrderTable({ orders = [], onUpdateStatus }) {
         return "bg-[#FF2E63]/10 text-[#FF2E63] border-[#FF2E63]/20";
       case "Closed":
         return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "Cancelled":
+        return "bg-slate-100 text-slate-500 border-slate-200";
       default:
         return "bg-[#08D9D6]/10 text-[#06b6b3] border-[#08D9D6]/30";
     }
@@ -35,7 +37,9 @@ export default function OrderTable({ orders = [], onUpdateStatus }) {
       await onUpdateStatus(id, nextStatus);
     }
     if (selectedOrder) {
-      setSelectedOrder((prev) => (prev ? { ...prev, status: nextStatus } : null));
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, status: nextStatus } : null
+      );
     }
   };
 
@@ -69,7 +73,16 @@ export default function OrderTable({ orders = [], onUpdateStatus }) {
                       ? item.customer
                       : item.customer?.nama || "-"}
                   </td>
-                  <td className="py-3.5 text-slate-400">{item.date || "-"}</td>
+                  <td className="py-3.5 text-slate-400">
+                    {item.date ||
+                      (item.tanggal
+                        ? new Date(item.tanggal).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "-")}
+                  </td>
                   <td className="py-3.5 font-bold text-slate-900">
                     {formatRupiah(item.amount ?? item.total_harga)}
                   </td>
